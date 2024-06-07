@@ -10,7 +10,8 @@ app.use (express.json());
 
 
 
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { Await } = require('react-router-dom');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.x8jkuyh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -52,6 +53,21 @@ async function run() {
         const result = await petListCollection.find(query).sort({ date: -1 }).toArray();
         res.send(result);
     });
+
+    app.get('/petlisting/:id', async (req, res) => {
+        const id = req.params.id;
+        console.log(id)
+        const query = { _id: new ObjectId (id) }
+        const result = await petListCollection.findOne(query);
+        res.send(result);
+        console.log(result);
+    });
+    app.post('/petlisting',async(req ,res)=>{
+        const item =req.body;
+        const result = await petListCollection.insertOne(item);
+        res.send(result);
+        console.log(result);
+    })
     
 
     // Send a ping to confirm a successful connection
