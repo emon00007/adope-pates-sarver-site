@@ -35,8 +35,8 @@ async function run() {
         }
         if (search) {
             query.$or = [
-                { name: { $regex: search, $options: 'i' } },
-                { description: { $regex: search, $options: 'i' } }
+                { petName: { $regex: search, $options: 'i' } },
+                { shortDescription: { $regex: search, $options: 'i' } }
             ];
         }
         const result = await petListCollection.find(query).sort({ date: -1 }).toArray();
@@ -99,6 +99,14 @@ async function run() {
             }
         }
         const result = await petListCollection.updateOne(filter,updateDoc);
+        res.send(result)
+    })
+
+    app.delete('/delete/:id',async(req,res)=>{
+        const result = await petListCollection.deleteOne({
+            _id: new ObjectId(req.params.id)
+        })
+        console.log(result)
         res.send(result)
     })
 
