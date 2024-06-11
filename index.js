@@ -26,6 +26,7 @@ async function run() {
     await client.connect();
 
     const petListCollection = client.db("adopets").collection("petlisting");
+    const donationCollection = client.db("adopets").collection("donation");
 
     app.get('/petlisting', async (req, res) => {
         const { category, search } = req.query;
@@ -61,11 +62,12 @@ async function run() {
         }
     });
 
-    app.post('/petlisting', async (req, res) => {
+    app.post('/addpet', async (req, res) => {
         const item = req.body;
         const result = await petListCollection.insertOne(item);
         res.send(result);
     });
+
     app.get('/mypetlisting',async(req,res)=>{
         const result = await petListCollection.find().toArray();
         res.send(result)
@@ -108,6 +110,18 @@ async function run() {
         })
         console.log(result)
         res.send(result)
+    })
+
+    app.post('/donation', async (req, res) => {
+        const item = req.body;
+        const result = await donationCollection.insertOne(item);
+        res.send(result);
+    });
+
+    app.get('/donationCampaign',async(req,res)=>{
+        const result = await donationCollection.find().toArray();
+        res.send(result)
+        console.log(result)
     })
 
     // Send a ping to confirm a successful connection
