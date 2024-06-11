@@ -27,6 +27,7 @@ async function run() {
 
     const petListCollection = client.db("adopets").collection("petlisting");
     const donationCollection = client.db("adopets").collection("donation");
+    const UsersCollection = client.db("adopets").collection("users");
 
     app.get('/petlisting', async (req, res) => {
         const { category, search } = req.query;
@@ -73,6 +74,8 @@ async function run() {
         res.send(result)
         console.log(result)
     })
+
+    
 
     // app.get('/mypetlisting/:email', async (req, res) => {
     //     const email = req.params.email;
@@ -123,6 +126,25 @@ async function run() {
         res.send(result)
         console.log(result)
     })
+    app.get('/donationCampaign/:id',async(req,res)=>{
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const result = await donationCollection.findOne();
+        res.send(result)
+        console.log(result)
+    })
+
+
+    app.post('/userAdded', async (req, res) => {
+        const user = req.body;
+        const query={email:user.email}
+        const existingUser = await UsersCollection.findOne(query)
+        if(existingUser){
+            return res.send({massage:'user Already Exists',insertedId:null})
+        }
+        const result = await UsersCollection.insertOne(user);
+        res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
