@@ -28,6 +28,7 @@ async function run() {
     const petListCollection = client.db("adopets").collection("petlisting");
     const donationCollection = client.db("adopets").collection("donation");
     const UsersCollection = client.db("adopets").collection("users");
+    const petRequestCollection = client.db("adopets").collection("petRequest");
 
     app.get('/petlisting', async (req, res) => {
         const { category, search } = req.query;
@@ -75,15 +76,6 @@ async function run() {
         console.log(result)
     })
 
-    
-
-    // app.get('/mypetlisting/:email', async (req, res) => {
-    //     const email = req.params.email;
-    //     const filter = { useremail: email };
-    //     const result = await petListCollection.find(filter).toArray();
-    //     res.send(result);
-    //     console.log(email)
-    // });
 
     app.get('/mypetlisting/:email', async (req, res) => {
         const email = req.params.email;
@@ -151,6 +143,17 @@ async function run() {
         res.send(result)
         console.log(result)
     })
+    app.get('/allDonation',async(req,res)=>{
+        const result = await donationCollection.find().toArray();
+        res.send(result)
+        console.log(result)
+    })
+    app.delete('/allDonation/:id',async (req,res)=>{
+        const id = req.params.id;
+        const query ={_id: new ObjectId(id)}
+        const result = await donationCollection.deleteOne(query);
+        res.send(result);
+    })
     app.get('/allPets',async(req,res)=>{
         const result = await petListCollection.find().toArray();
         res.send(result)
@@ -175,6 +178,14 @@ async function run() {
         const result = await UsersCollection.updateOne(filter,updateDoc);
         res.send(result)
     })
+
+    app.post('/petaddRequest', async (req, res) => {
+        const item = req.body;
+        const result = await petRequestCollection.insertOne(item);
+        res.send(result);
+    });
+
+    app.get('/')
     
 
     // Send a ping to confirm a successful connection
