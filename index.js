@@ -146,6 +146,30 @@ async function run() {
         res.send(result);
     });
 
+    app.get('/allUser',async(req,res)=>{
+        const result = await UsersCollection.find().toArray();
+        res.send(result)
+        console.log(result)
+    })
+    app.get('/allPets',async(req,res)=>{
+        const result = await petListCollection.find().toArray();
+        res.send(result)
+        console.log(result)
+    })
+
+    app.patch('/allUsers/admin/:id',async(req,res)=>{
+        const id = req.params.id;
+        const filter ={_id: new ObjectId(id)  }
+        const updateDoc = {
+            $set :{
+            role:'admin'
+            }
+        }
+        const result = await UsersCollection.updateOne(filter,updateDoc);
+        res.send(result)
+    })
+    
+
     // Send a ping to confirm a successful connection
     await client.db("admin").command({ ping: 1 });
     console.log("Pinged your deployment. You successfully connected to MongoDB!");
