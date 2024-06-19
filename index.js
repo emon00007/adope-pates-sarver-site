@@ -3,10 +3,11 @@ const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken')
 require('dotenv').config();
+const stripe = require("stripe")(process.env.STRIP_SECRET_KEY)
 const port = process.env.PORT || 5000;
 
 // middleware
-app.use(cors({origin:['http://localhost:5173']}));
+app.use(cors({ origin: ['http://localhost:5173'] }));
 app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
@@ -40,56 +41,56 @@ async function run() {
             const user = req.body
             const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1h' });
             res.send({ token })
-          })
+        })
 
         // middleware
         const verifyToken = (req, res, next) => {
             if (!req.headers.authorization) {
-              return res.status(401).send({ message: 'unauthorized access' });
+                return res.status(401).send({ message: 'unauthorized access' });
             }
             const token = req.headers.authorization.split(' ')[1];
             jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
-              if (err) {
-                return res.status(401).send({ message: 'unauthorized access' })
-              }
-              req.decoded = decoded;
-              console.log(req.decoded);
-              next();
+                if (err) {
+                    return res.status(401).send({ message: 'unauthorized access' })
+                }
+                req.decoded = decoded;
+                console.log(req.decoded);
+                next();
             })
-          }
+        }
 
-          const verifyAdmin = async (req, res, next) => {
+        const verifyAdmin = async (req, res, next) => {
             const email = req.decoded.email;
             const query = { email: email };
             const user = await UsersCollection.findOne(query);
             const isAdmin = user?.role === 'admin';
             if (!isAdmin) {
-              return res.status(403).send({ message: 'forbidden access' });
+                return res.status(403).send({ message: 'forbidden access' });
             }
             next();
-          }
+        }
 
-          app.get('/users/admin/:email', verifyToken, async (req, res) => {
+        app.get('/users/admin/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
             console.log(req.decoded)
             if (email !== req.decoded.email) {
                 return res.status(403).send({ message: 'forbidden access' });
             }
-        
+
             const query = { email: email };
             const user = await UsersCollection.findOne(query);
             const isAdmin = user?.role === 'admin';
             res.send({ admin: isAdmin });
         });
-        
+
         app.get('/users/User/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
             console.log(req.decoded);
-        
+
             if (email !== req.decoded.email) {
                 return res.status(403).send({ message: 'forbidden access' });
             }
-        
+
             const query = { email: email };
             const user = await UsersCollection.findOne(query);
             const isUser = user?.role === 'user';
@@ -190,9 +191,11 @@ async function run() {
             console.log(filter, updateDoc)
             const result = await petListCollection.updateOne(filter, updateDoc);
             console.log(result)
+            console.log("asdhjkl;", filter);
             res.send(result)
 
         })
+
 
         app.delete('/delete/:id', async (req, res) => {
             const result = await petListCollection.deleteOne({
@@ -201,6 +204,37 @@ async function run() {
             // console.log(result)
             res.send(result)
         })
+
+
+
+
+
+
+
+        app.post('/create-payment-intent',verifyToken, async (req, res) => {
+            const { price } = req.body;
+            console.log(price);
+            if (!price || isNaN(price) || parseFloat(price) < 0.5) {
+                return res.status(400).send({ error: 'Invalid amount' });
+            }
+
+            try {
+                const paymentIntent = await stripe.paymentIntents.create({
+                    amount: Math.round(parseFloat(price) * 100),
+                    currency: 'usd',
+                    // optional: enable automatic payment methods
+                    automatic_payment_methods: {
+                        enabled: true,
+                    },
+                });
+
+                res.send({ clientSecret: paymentIntent.client_secret });
+            } catch (error) {
+                console.error('Error creating payment intent:', error);
+                res.status(500).send({ error: 'Failed to create payment intent' });
+            }
+        });
+
 
 
 
@@ -217,6 +251,7 @@ async function run() {
             const filter = { email: email };
             const result = await donationCollection.find(filter).toArray();
             res.send(result);
+            console.log('server hitted', result)
         });
         app.get('/donationUpdate/:id', async (req, res) => {
             const id = req.params.id;
@@ -258,7 +293,7 @@ async function run() {
         })
 
 
-        app.post('/userAdded' ,async (req, res) => {
+        app.post('/userAdded', async (req, res) => {
             const user = req.body;
             const query = { email: user.email }
             const existingUser = await UsersCollection.findOne(query)
@@ -269,13 +304,13 @@ async function run() {
             res.send(result);
         });
 
-        app.get('/allUser', verifyToken,verifyAdmin, async (req, res) => {
+        app.get('/allUser', verifyToken, verifyAdmin, async (req, res) => {
             // console.log(req.headers);
             const result = await UsersCollection.find().toArray();
             res.send(result)
 
         })
-        app.get('/allDonation', verifyToken, verifyAdmin,async (req, res) => {
+        app.get('/allDonation', verifyToken, verifyAdmin, async (req, res) => {
             const result = await donationCollection.find().toArray();
             res.send(result)
 
@@ -299,7 +334,7 @@ async function run() {
             res.send(result);
         })
 
-        app.patch('/allUsers/admin/:id',verifyToken,verifyAdmin, async (req, res) => {
+        app.patch('/allUsers/admin/:id', verifyToken, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
             const updateDoc = {
