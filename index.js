@@ -26,12 +26,13 @@ const client = new MongoClient(uri, {
 async function run() {
     try {
         // Connect the client to the server (optional starting in v4.7)
-        await client.connect();
+        // await client.connect();
 
         const petListCollection = client.db("adopets").collection("petlisting");
         const donationCollection = client.db("adopets").collection("donation");
         const UsersCollection = client.db("adopets").collection("users");
         const petRequestCollection = client.db("adopets").collection("petRequest");
+        const PaymentCollection = client.db("adopets").collection("Payment");
 
 
         // jwt related api
@@ -54,7 +55,7 @@ async function run() {
                     return res.status(401).send({ message: 'unauthorized access' })
                 }
                 req.decoded = decoded;
-                console.log(req.decoded);
+                // console.log(req.decoded);
                 next();
             })
         }
@@ -72,7 +73,7 @@ async function run() {
 
         app.get('/users/admin/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
-            console.log(req.decoded)
+            // console.log(req.decoded)
             if (email !== req.decoded.email) {
                 return res.status(403).send({ message: 'forbidden access' });
             }
@@ -85,7 +86,7 @@ async function run() {
 
         app.get('/users/User/:email', verifyToken, async (req, res) => {
             const email = req.params.email;
-            console.log(req.decoded);
+            // console.log(req.decoded);
 
             if (email !== req.decoded.email) {
                 return res.status(403).send({ message: 'forbidden access' });
@@ -126,7 +127,7 @@ async function run() {
             res.send(result)
         });
 
-        app.patch('/UpdatePat/:id', async (req, res) => {
+        app.patch('/UpdatePat/:id',verifyToken ,async (req, res) => {
             const item = req.body;
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
@@ -147,26 +148,26 @@ async function run() {
         });
 
 
-        app.post('/addpet', async (req, res) => {
+        app.post('/addpet',verifyToken ,async (req, res) => {
             const item = req.body;
             const result = await petListCollection.insertOne(item);
             res.send(result);
         });
 
-        app.get('/mypetlisting', async (req, res) => {
+        app.get('/mypetlisting',verifyToken, async (req, res) => {
             const result = await petListCollection.find().toArray();
             res.send(result)
         })
 
 
-        app.get('/mypetlisting/:email', async (req, res) => {
+        app.get('/mypetlisting/:email',verifyToken ,async (req, res) => {
             const email = req.params.email;
             const filter = { email: email };
             const result = await petListCollection.find(filter).toArray();
             res.send(result);
         });
 
-        app.patch('/adopt/:id', async (req, res) => {
+        app.patch('/adopt/:id',verifyToken, async (req, res) => {
             const item = req.body;
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
@@ -179,7 +180,7 @@ async function run() {
             res.send(result)
         })
 
-        app.patch('/petaddRequeste/:id', async (req, res) => {
+        app.patch('/petaddRequeste/:id',verifyToken, async (req, res) => {
             const item = req.body;
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
@@ -188,16 +189,16 @@ async function run() {
                     adopted: item.adopted
                 }
             }
-            console.log(filter, updateDoc)
+            // console.log(filter, updateDoc)
             const result = await petListCollection.updateOne(filter, updateDoc);
-            console.log(result)
-            console.log("asdhjkl;", filter);
+            // console.log(result)
+            // console.log("asdhjkl;", filter);
             res.send(result)
 
         })
 
 
-        app.delete('/delete/:id', async (req, res) => {
+        app.delete('/delete/:id',verifyToken, async (req, res) => {
             const result = await petListCollection.deleteOne({
                 _id: new ObjectId(req.params.id)
             })
@@ -210,8 +211,8 @@ async function run() {
 
 
 
-
-        app.post('/create-payment-intent',verifyToken, async (req, res) => {
+        // payment related 
+        app.post('/create-payment-intent', verifyToken, async (req, res) => {
             const { price } = req.body;
             console.log(price);
             if (!price || isNaN(price) || parseFloat(price) < 0.5) {
@@ -236,22 +237,74 @@ async function run() {
         });
 
 
+        app.post('/payments',verifyToken ,async (req, res) => {
+            payment = req.body;
+            const paymentRequest = await PaymentCollection.insertOne(payment);
+            res.send(paymentRequest)
+        })
+
+        // app.get ('/payment/:email',async(req,res)=>{
+        //     const query={email:req.params.email}
+        //     const result = await PaymentCollection.find(query).toArray();
+        //     res.send(result)
+        //     console.log(query,result);
+
+        // })
+        // app.get ('/payment/:donationId',async(req,res)=>{
+        //     const {donationId}=req.donationId
+        //     const result = await PaymentCollection.find(donationId).toArray();
+        //     res.send(result)
+        //     console.log(donationId,result);
+
+        // })
 
 
+        app.patch('/campaign/:id', verifyToken, async (req, res) => {
+            const { id } = req.params;
+            const { status} = req.body;
+            
+            const filter = { _id: new ObjectId(id) }
+            // console.log(id,item,filter);
+            const updateDoc={
+                $set:{
+                    status:status
+                }
+                
+            }
+            const result  = await donationCollection.updateOne(filter,updateDoc)
+            res.send(result)
+        });
 
+        // admin operation
 
-        app.post('/donation', async (req, res) => {
+        app.patch('/campaign/admin/:id', verifyToken,verifyAdmin, async (req, res) => {
+            const { id } = req.params;
+            const { status} = req.body;
+            
+            const filter = { _id: new ObjectId(id) }
+            // console.log(id,item,filter);
+            const updateDoc={
+                $set:{
+                    status:status
+                }
+                
+            }
+            const result  = await donationCollection.updateOne(filter,updateDoc)
+            res.send(result)
+        });
+
+        app.post('/donation', verifyToken, async (req, res) => {
             const item = req.body;
             const result = await donationCollection.insertOne(item);
             res.send(result);
         });
 
-        app.get('/donation/:email', async (req, res) => {
+        app.get('/donation/:email',verifyToken, async (req, res) => {
             const email = req.params.email;
             const filter = { email: email };
             const result = await donationCollection.find(filter).toArray();
             res.send(result);
-            console.log('server hitted', result)
+            // console.log('server hitted', result)
         });
         app.get('/donationUpdate/:id', async (req, res) => {
             const id = req.params.id;
@@ -261,7 +314,7 @@ async function run() {
             res.send(result)
         });
 
-        app.patch('/UpdateDonate/:id', async (req, res) => {
+        app.patch('/UpdateDonate/:id',verifyToken, async (req, res) => {
             const item = req.body;
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) }
@@ -284,10 +337,10 @@ async function run() {
             res.send(result)
             // console.log(result)
         })
-        app.get('/donationCampaign/:id', async (req, res) => {
+        app.get('/donationCampaign/:id', verifyToken, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
-            const result = await donationCollection.findOne();
+            const result = await donationCollection.findOne(query);
             res.send(result)
             // console.log(result)
         })
@@ -315,19 +368,19 @@ async function run() {
             res.send(result)
 
         })
-        app.delete('/allDonation/:id', async (req, res) => {
+        app.delete('/allDonation/:id',verifyToken,verifyAdmin ,async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await donationCollection.deleteOne(query);
             res.send(result);
         })
-        app.get('/allPets', verifyToken, async (req, res) => {
+        app.get('/allPets',verifyToken, verifyAdmin,async (req, res) => {
             const result = await petListCollection.find().toArray();
             res.send(result)
 
         })
 
-        app.delete('/allPets/:id', async (req, res) => {
+        app.delete('/allPets/:id',verifyToken ,verifyAdmin,async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await petListCollection.deleteOne(query);
@@ -346,7 +399,7 @@ async function run() {
             res.send(result)
         })
 
-        app.post('/petaddRequest', async (req, res) => {
+        app.post('/petaddRequest',verifyToken, async (req, res) => {
             const item = req.body;
             const result = await petRequestCollection.insertOne(item);
             res.send(result);
@@ -354,13 +407,13 @@ async function run() {
 
 
 
-        app.get('/petaddRequest/:posterEmail', async (req, res) => {
+        app.get('/petaddRequest/:posterEmail',verifyToken, async (req, res) => {
             const email = req.params.posterEmail;
             const filter = { posterEmail: email };
-            console.log('Filter:', filter);
+            // console.log('Filter:', filter);
             const result = await petRequestCollection.find(filter).toArray();
             res.send(result);
-            console.log('Result:', result);
+            // console.log('Result:', result);
         });
 
 
@@ -368,7 +421,7 @@ async function run() {
 
 
         // Send a ping to confirm a successful connection
-        await client.db("admin").command({ ping: 1 });
+        // await client.db("admin").command({ ping: 1 });
         console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
