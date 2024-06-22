@@ -7,11 +7,11 @@ const stripe = require("stripe")(process.env.STRIP_SECRET_KEY)
 const port = process.env.PORT || 5000;
 
 // middleware
-app.use(cors({ origin: ['http://localhost:5173'] }));
+app.use(cors());
 app.use(express.json());
 
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const { Await } = require('react-router-dom');
+// const { Await } = require('react-router-dom');
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.x8jkuyh.mongodb.net/?retryWrites=true&w=majority&appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -251,12 +251,19 @@ async function run() {
 
         // })
         // app.get ('/payment/:donationId',async(req,res)=>{
-        //     const {donationId}=req.donationId
-        //     const result = await PaymentCollection.find(donationId).toArray();
+        //     const query={donationId:req.params.donationId}
+        //     const result = await PaymentCollection.find(query).toArray();
         //     res.send(result)
         //     console.log(donationId,result);
 
         // })
+        app.get('/paymentDetails/:id',verifyToken,async(req,res)=>{
+            const id =req.params.id
+            const query ={donationId:id}
+            const result = await PaymentCollection.find(query).toArray();
+            res.send(result)
+            console.log(result,query);
+        })
 
 
         app.patch('/campaign/:id', verifyToken, async (req, res) => {
@@ -422,7 +429,7 @@ async function run() {
 
         // Send a ping to confirm a successful connection
         // await client.db("admin").command({ ping: 1 });
-        console.log("Pinged your deployment. You successfully connected to MongoDB!");
+        // console.log("Pinged your deployment. You successfully connected to MongoDB!");
     } finally {
         // Ensures that the client will close when you finish/error
         // await client.close();
